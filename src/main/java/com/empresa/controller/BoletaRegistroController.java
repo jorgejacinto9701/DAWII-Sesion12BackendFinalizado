@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.empresa.entidades.Boleta;
 import com.empresa.entidades.Cliente;
+import com.empresa.entidades.DataRegistroBoleta;
 import com.empresa.entidades.Mensaje;
 import com.empresa.entidades.Producto;
 import com.empresa.entidades.ProductoHasBoleta;
@@ -54,8 +56,12 @@ public class BoletaRegistroController {
 		int page = 0;
 		int size = 5; //Muestre los primer cinco elementos
 		Pageable pageable = PageRequest.of(page, size);
-		
-		List<Cliente> lista = clienteService.listaCliente(filtro+"%", pageable);
+		List<Cliente> lista = null;
+		if (filtro.equals("todos")) {
+			lista = clienteService.listaCliente("%%", pageable);	
+		}else {
+			lista = clienteService.listaCliente(filtro+"%", pageable);
+		}
 		return ResponseEntity.ok(lista);
 	}
 	
@@ -65,18 +71,22 @@ public class BoletaRegistroController {
 		int page = 0;
 		int size = 5; //Muestre los primer cinco elementos
 		Pageable pageable = PageRequest.of(page, size);
-		
-		List<Producto> lista = productoService.listaproducto(filtro+"%", pageable);
+		List<Producto> lista = null;
+		if (filtro.equals("todos")) {
+			lista = productoService.listaproducto("%%", pageable);	
+		}else {
+			lista = productoService.listaproducto(filtro+"%", pageable);
+		}
 		return ResponseEntity.ok(lista);
 	}
 	
-	@RequestMapping("/registraBoleta")
+	@PostMapping("/registraBoleta")
 	@ResponseBody()
-	public ResponseEntity<Mensaje> registra(@RequestBody Cliente cliente , @RequestBody List<Seleccion> seleccionados){
+	public ResponseEntity<Mensaje> registra(@RequestBody DataRegistroBoleta data){
 		Mensaje   objMensaje = new Mensaje();
 		
 		List<ProductoHasBoleta> detalles = new ArrayList<ProductoHasBoleta>();
-		for (Seleccion seleccion : seleccionados) {
+		for (Seleccion seleccion : data.getSeleccionados()) {
 			
 			ProductoHasBoletaPK pk = new ProductoHasBoletaPK();
 			pk.setIdProducto(seleccion.getIdProducto());
@@ -94,7 +104,7 @@ public class BoletaRegistroController {
 		objUsuario.setIdUsuario(1);
 		
 		Boleta obj = new Boleta();
-		obj.setCliente(cliente);
+		obj.setCliente(data.getCliente());
 		obj.setDetallesBoleta(detalles);
 		obj.setUsuario(objUsuario);
 		
@@ -107,7 +117,7 @@ public class BoletaRegistroController {
 				salida += "Cliente: " + objBoleta.getCliente().getNombre() + "<br><br>";
 				salida += "<table class=\"table\"><tr><td>Producto</td><td>Precio</td><td>Cantidad</td><td>Subtotal</td></tr>";
 				double monto = 0;
-				for (Seleccion x : seleccionados) {
+				for (Seleccion x : data.getSeleccionados()) {
 					salida += "<tr><td>"  + x.getNombre() 
 							+ "</td><td>" + x.getPrecio() 
 							+ "</td><td>" + x.getCantidad()
@@ -117,7 +127,7 @@ public class BoletaRegistroController {
 				salida += "</table><br>";
 				salida += "Monto a pagar : " + monto;
 
-				seleccionados.clear();
+				data.getSeleccionados().clear();
 				objMensaje.setTexto(salida);	
 		}
 		
